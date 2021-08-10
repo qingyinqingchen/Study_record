@@ -22,7 +22,7 @@ Lifecycle是一个类，用于存储有关组件（如 Activity 或 Fragment）�
 
 ```java
 public class MyObserver implements LifecycleObserver {
-    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)//这个观察者可以通过lifecycle的状态执行操作
     public void connectListener() {
         ...
     }
@@ -39,6 +39,94 @@ myLifecycleOwner.getLifecycle().addObserver(new MyObserver());
 //这样就可以尽量少的在activity或者fragment中更新所需要的代码，
 //代码的具体实现官网可看
 ```
+
+lifecycleOwner
+
+表示类具有lifecycle，有getlifecycle()方法。（可以理解为获取到类似于liveData这种的数据）。
+
+```java
+class MyLocationListener implements LifecycleObserver {
+    private boolean enabled = false;
+    public MyLocationListener(Context context, Lifecycle lifecycle, Callback callback) {
+       ...
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_START)
+    void start() {
+        if (enabled) {
+           // connect
+        }
+    }
+
+    public void enable() {
+        enabled = true;
+        if (lifecycle.getCurrentState().isAtLeast(STARTED)) {//**查询recycle的状态**
+            // connect if not connected
+        }
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
+    void stop() {
+        // disconnect if connected
+    }
+}
+```
+
+**实现自定义LifecycleOwner**
+
+支持库 26.1.0 及更高版本中的 Fragment 和 Activity 已实现 LifecycleOwner接口。
+
+如以下代码示例中所示：
+
+```java
+public class MyActivity extends Activity implements LifecycleOwner {
+    private LifecycleRegistry lifecycleRegistry;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        lifecycleRegistry = new LifecycleRegistry(this);
+        lifecycleRegistry.markState(Lifecycle.State.CREATED);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        lifecycleRegistry.markState(Lifecycle.State.STARTED);
+    }
+
+    @NonNull
+    @Override
+    public Lifecycle getLifecycle() {
+        return lifecycleRegistry;
+    }
+}
+```
+
+###  **Lifecycle** **原理分析**
+
+看图：
+
+![Lifecycle组件原理](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/5/28/16afeb4f42a9ed89~tplv-t2oaga2asx-watermark.awebp)
+
+
+
+结合Fragment了解lifecycle：
+
+1.fragment实现了LifecycleOwner接口，因此也就持有生命周期对象，并可通过getLifecycle()获取对象。但是这个对象其实是继承了Lifecycle的LifecycleRegistry对象。
+
+2.持有Lifecycle对象之后，在fragment的生命周期内，都会发送对应的生命周期事件给内部的LifecycleRegistry对象处理。
+
+调用时序图：
+
+![Lifecycle 在Fragment中的时序图](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/5/28/16afeb4f42be3b47~tplv-t2oaga2asx-watermark.awebp)
+
+Tips：
+
+1.注解的方式和DefaultLifecycleObserver的取舍，官方推荐后者
+
+
 
 
 
@@ -105,16 +193,120 @@ private MutableLiveData<String> currentName;
 
 #### 观察LivaData对象
 
+LiveData数据发生更改时才会更新。从不活跃到活跃也会更新。
 
+```java
+public class NameActivity extends AppCompatActivity {
+
+    private NameViewModel model;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Other code to setup the activity...
+
+        // Get the ViewModel.
+        model = new ViewModelProvider(this).get(NameViewModel.class);
+
+        // Create the observer which updates the UI.
+        final Observer<String> nameObserver = new Observer<String>() {
+            @Override
+            public void onChanged(@Nullable final String newName) {
+                // Update the UI, in this case, a TextView.
+                nameTextView.setText(newName);
+            }
+        };
+
+        // Observe the LiveData, passing in this activity as the LifecycleOwner and the observer.
+        model.getCurrentName().observe(this, nameObserver);
+    }
+}
+//在这的代码中LiveData是放在model中的，也就是在Activity中的Oncreate方法中进行绑定。给model通过observe方法添加观察者（也就是observe）。具体观察哪个则是通过model.getCurrentName()确定。
+```
 
 #### 更新LivaData对象
 
+没有公开可用的方法更新数据，只能通过setValue和postValue方法更新。
+
+ps：主线程setValue，工作器线程postValue。**？？？？？**
+
 #### LivaData和Room一起使用
+
+Room持久性库支持返回 LivaData对象的可观察查询。可观察查询属于数据库访问对象 (DAO) 的一部分。
+
+当数据库更新时，**Room 会生成更新 `LiveData` 对象所需的所有代码**。在需要时，生成的代码会在后台线程上异步运行查询。此模式有助于使界面中显示的数据与存储在数据库中的数据保持同步。
 
 #### 将协程与LivaData一起使用
 
 ### 扩展LivaData
 
+具体方法看代码：
+
+```java
+public class StockLiveData extends LiveData<BigDecimal> {//例子里面是做一个股票的管理数据
+    private StockManager stockManager;//类似于一个股票池，股票池里添加数据
+
+    private SimplePriceListener listener = new SimplePriceListener() {//股票价格监听，个人理解为是这个LivaData自带的监听器？外面引用的时候会自动调用这个方法。。。。。。。这个监听者只是为了更改自己的价格，而外面调用的监听者则是做其他操作。
+        @Override
+        public void onPriceChanged(BigDecimal price) {
+            setValue(price);
+        }
+    };
+
+    public StockLiveData(String symbol) {
+        stockManager = new StockManager(symbol);
+    }
+
+    @Override
+    protected void onActive() {
+        stockManager.requestPriceUpdates(listener);
+    }
+
+    @Override
+    protected void onInactive() {
+        stockManager.removeUpdates(listener);
+    }
+}
+
+//在这个例子中当有活跃的观察者时，会调用onActive，没有则是OnInactive
+//setValue(T) 方法将更新 LiveData 实例的值，并将更改告知活跃观察者。
+```
+
 ### 转换LivaData
 
+转换LivaData是希望在将 LiveData 对象分派给观察者之前对存储在其中的值进行更改，或者可能需要根据另一个实例的值返回不同的LiveData`实例。Lifecycle软件包会提供 Transformations类，该类包括可应对这些情况的辅助程序方法。
+
+1.Transformations.map()：对存储在 `LiveData` **对象中的值应用函数**，并将结果传播到下游。
+
+```java
+LiveData<User> userLiveData = ...;
+LiveData<String> userName = Transformations.map(userLiveData, user -> {
+    user.name + " " + user.lastName
+});
+```
+
+2.Transformations.switchMap()与 map()类似，对存储在 `LiveData` **对象中的值应用函数**，并将结果解封和分派到下游。传递给 `switchMap()` 的函数必须返回 `LiveData` 对象。
+
+```java
+private LiveData<User> getUser(String id) {
+  ...;
+}
+
+LiveData<String> userId = ...;
+LiveData<User> user = Transformations.switchMap(userId, id -> getUser(id) );
+```
+
+上述转述方法必须在生命周期内传送信息。
+
 ### 合并多个LivaData源
+
+使用MediatorLiveData//没有太多的介绍，后面仔细了解。
+
+
+
+
+
+tips：
+
+1.只有在onStart()到onPause()过程中才是started状态，也就是活跃状态，这是因为防止不在栈顶到数据被更新。
