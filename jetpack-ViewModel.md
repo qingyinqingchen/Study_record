@@ -50,3 +50,22 @@ public class DetailFragment extends Fragment {
 //这一部分是写了两个fragment监控同一个数据，是在同一个viewmodel中的数据，MasterFragment是改变数据用的，而detail是设置数据的。
 ```
 
+### ViewModel
+
+1. 缓存在内存中的，相当于本地缓存和网络缓存读写比较快
+2. 可以存较大的值，比如bitmap、大对象等等
+3. 数据绑定了Activity或者Fragment的生命周期，当Activity正常关闭的时候，都会清除ViewModel中的数据.比如
+   - 调用finish()
+   - 按返回键退出，
+   - 用户直接杀进程或者是放后台内存不足，被回收了
+4. 在Activity旋转或者其他配置改变的时候，ViewModel里面是还有值得，不会销毁，
+5. ViewModel也可以使用本地存储,通过SavedStateHandle实现的，使用SavedStateViewModelFactory这个工厂，引用是`implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.2.0`
+
+6，也可以new ViewModle的，new出来的 基本上就没有ViewModle的特性了。相当于一个真正的Present层了
+
+###  onSaveInstanceState
+
+1. 仅适合可以序列化再反序列化的少量数据
+2. 不适合数量可能较大的数据，如用数组或Bitmap。可以存一些简单的基本类型和简单的小对象、例如字符串，和一些id
+3. 会把数据存储到磁盘上
+

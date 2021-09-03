@@ -38,6 +38,7 @@ myLifecycleOwner.getLifecycle().addObserver(new MyObserver());
 //添加Observer则是观察者具有listerner的名称，可以监控当前的lifecycle的结果，然后进行操作
 //这样就可以尽量少的在activity或者fragment中更新所需要的代码，
 //代码的具体实现官网可看
+//这种方法是使用注解，还有一种方法是根据回调函数确定的，官方更推荐回调函数
 ```
 
 lifecycleOwner
@@ -303,10 +304,22 @@ LiveData<User> user = Transformations.switchMap(userId, id -> getUser(id) );
 
 使用MediatorLiveData//没有太多的介绍，后面仔细了解。
 
+ps：
 
+1.一个Observer对象只能和一个Lifecycle对象绑定，否则将抛出异常
+
+2.同一个Observer对象不能同时使用Observe和observeForever方法，否咋将抛出异常
+
+3.存在丢值的可能性，如果连续postValue，最终可能只有最后一个值能够被保留并回调
+
+4.存在仅有部分 Observer 收到了回调，其它 Observer 又没有的可能性。当单线程连续传值或者多线程同时传值时，假设是先后传 valueA 和 valueB，最终可能只有部分 Observer 接收到了 valueA，所有 Observer 都接收到了 valueB
 
 
 
 tips：
 
 1.只有在onStart()到onPause()过程中才是started状态，也就是活跃状态，这是因为防止不在栈顶到数据被更新。
+
+2.这一系列的文章都很不错：https://juejin.cn/post/6847902220755992589#heading-0
+
+https://blog.csdn.net/qq_43404873/article/details/109556209
