@@ -205,7 +205,9 @@ public View inflate(XmlPullParser parser, @Nullable ViewGroup root, boolean atta
 
 
 
-# 绘制流程解析
+# View绘制流程解析
+
+书
 
 主要经过onMeasure()、onLayout()和onDraw()
 
@@ -228,3 +230,15 @@ View系统的绘制流程会从ViewRoot的perform Traversals()方法开始，内
 表示开发人员可以将视图按照自己的意愿设置成任意的大小，没有任何限制。这种情况比较少见，不太会用到。
 
 widthMeasureSpec和heightMeasureSpec这两个值都是由父视图经过计算后传递给子视图的，说明父视图会在一定程度上决定子视图的大小。
+
+## 重绘过程
+
+guolin blog 三
+
+## 自定义View
+
+书
+
+# View的事件体系-点击事件
+
+书
