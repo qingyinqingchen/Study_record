@@ -191,6 +191,41 @@ public View inflate(XmlPullParser parser, @Nullable ViewGroup root, boolean atta
 
   这个和setContentView里面的不一样，这个函数中会自动添加一层layout。虽然setContentView()方法大家都会用，但实际上Android界面显示的原理要比我们所看到的东西复杂得多。任何一个Activity中显示的界面其实主要都由两部分组成，**标题栏和内容布局**。标题栏就是在很多界面顶部显示的那部分内容，比如刚刚我们的那个例子当中就有标题栏，可以在代码中控制让它是否显示。而内容布局就是一个FrameLayout，这个布局的id叫作content，我们调用setContentView()方法时所传入的布局其实就是放到这个FrameLayout中的，这也是为什么这个方法名叫作setContentView()，而不是叫setView()。
 
+标题栏设置成空的方法：
+
+一、通过Java代码
+
+```java
+在setContentView之前执行：
+requestWindowFeature(Window.FEATURE_NO_TITLE);//隐藏标题栏
+getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);//隐藏状态栏
+发现这段当activity继承Activity时才起作用···
+```
+
+二、调用Android自带的Theme
+
+```java
+直接在AndroidManifest.xml中需要全屏显示的Activity属性中添加
+android:theme="@android:style/Theme.NoTitleBar.Fullscreen" // 不显示应用程序标题栏，并全屏 
+android:theme="Theme.Light.NoTitleBar.Fullscreen" // 白色背景，无标题栏，全屏
+android:theme="Theme.Black.NoTitleBar.Fullscreen" // 黑色背景，无标题栏，全屏
+```
+
+三、自己定义全屏Theme
+
+在style.xml文件中定义theme（如果没有style.xml，在res/values目录下创建）
+
+```xml
+<resources> 
+
+<style name="Theme.NoTitle_FullScreen"> <!--自定义主题名称-->
+<item name="android:windowNoTitle">true</item> 
+<item name="android:windowFullscreen">true</item> 
+</style> 
+
+</resources>
+```
+
   ![](https://tva1.sinaimg.cn/large/008i3skNgy1gu6z8c7975j60fc0cijrm02.jpg)
 
   ## adroid中提供的XML解析器
