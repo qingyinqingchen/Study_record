@@ -132,7 +132,6 @@ JNIEXPORT jstring JNICALL Java_com_yeungeek_jnisample_NativeHelper_stringFromJNI
 | [J                    | long[]    | jlongArray    |
 | [Z                    | boolean[] | jbooleanArray |
 
-## JNI原理
 
 
 
